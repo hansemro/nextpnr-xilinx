@@ -542,7 +542,7 @@ void XilinxPacker::pack_dram()
                 for (int i = 0; i < (m256 ? 4 : 2); i++) {
                     NetInfo *spo_i = create_internal_net(cell->name, "SPO_" + std::to_string(i), false);
                     CellInfo *spr = create_dram_lut(cell->name.str(ctx) + "/ADDR" + std::to_string(i), base, cs,
-                                                    address, get_net_or_empty(cell, ctx->id("D")), spo_i, false, z);
+                                                    address, get_net_or_empty(cell, ctx->id("D")), spo_i, true, z);
                     if (base == nullptr)
                         base = spr;
                     spo_pre.push_back(spo_i);
