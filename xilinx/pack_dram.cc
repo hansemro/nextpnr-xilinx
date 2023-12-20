@@ -522,6 +522,38 @@ void XilinxPacker::pack_dram()
 
                 packed_cells.insert(ci->name);
             }
+        } else if (cs.memtype == ctx->id("RAM128X1S") || cs.memtype == ctx->id("RAM256X1S")) {
+            bool m256 = cs.memtype == ctx->id("RAM256X1S");
+            for (auto cell : group.second) {
+                auto init = get_or_default(cell->params, ctx->id("INIT"), Property(0, m256 ? 256 : 128));
+                std::vector<NetInfo *> spo_pre, dpo_pre;
+                int z = height - 1;
+
+                NetInfo *spo = get_net_or_empty(cell, ctx->id("O"));
+                disconnect_port(ctx, cell, ctx->id("O"));
+
+                // Low 6 bits of address - connect directly to RAM cells
+                std::vector<NetInfo *> address(cs.wa.begin(), cs.wa.begin() + std::min<size_t>(cs.wa.size(), 6));
+
+                // Upper bits of address - feed decode muxes
+                std::vector<NetInfo *> address_high(cs.wa.begin() + std::min<size_t>(cs.wa.size(), 6), cs.wa.end());
+                CellInfo *base = nullptr;
+
+                for (int i = 0; i < (m256 ? 4 : 2); i++) {
+                    NetInfo *spo_i = create_internal_net(cell->name, "SPO_" + std::to_string(i), false);
+                    CellInfo *spr = create_dram_lut(cell->name.str(ctx) + "/ADDR" + std::to_string(i), base, cs,
+                                                    address, get_net_or_empty(cell, ctx->id("D")), spo_i, false, z);
+                    if (base == nullptr)
+                        base = spr;
+                    spo_pre.push_back(spo_i);
+                    spr->params[ctx->id("INIT")] = init.extract(i * 64, 64);
+                    z--;
+                }
+                // Decode mux tree using MUXF7
+                create_muxf_tree(base, "SPO", spo_pre, address_high, spo, m256 ? 4 : (ctx->xc7 ? 2 : 6));
+
+                packed_cells.insert(cell->name);
+            }
         }
     }
     // Whole-SLICE DRAM
