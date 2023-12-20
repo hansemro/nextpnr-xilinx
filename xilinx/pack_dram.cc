@@ -36,6 +36,7 @@ CellInfo *XilinxPacker::create_dram_lut(const std::string &name, CellInfo *base,
                                         std::vector<NetInfo *> address, NetInfo *di, NetInfo *dout, bool sp, int z)
 {
     if (sp) {
+        log_info("Creating RAMS64E (%s)\n", name.c_str());
         // The address argument not used for single port LUTRAMs. Use ctrlset.wa instead.
         std::unique_ptr<CellInfo> dram_lut = create_cell(ctx, ctx->id("RAMS64E"), ctx->id(name));
         connect_port(ctx, di, dram_lut.get(), ctx->id("I"));
@@ -66,6 +67,7 @@ CellInfo *XilinxPacker::create_dram_lut(const std::string &name, CellInfo *base,
         new_cells.push_back(std::move(dram_lut));
         return dl;
     }
+    log_info("Creating RAMD64E (%s)\n", name.c_str());
     std::unique_ptr<CellInfo> dram_lut = create_cell(ctx, ctx->id("RAMD64E"), ctx->id(name));
     for (int i = 0; i < int(address.size()); i++)
         connect_port(ctx, address[i], dram_lut.get(), ctx->id("RADR" + std::to_string(i)));
@@ -98,6 +100,7 @@ CellInfo *XilinxPacker::create_dram32_lut(const std::string &name, CellInfo *bas
                                           std::vector<NetInfo *> address, NetInfo *di, NetInfo *dout, bool o5, bool sp, int z)
 {
     if (sp) {
+        log_info("Creating RAMS32 (%s)\n", name.c_str());
         NPNR_ASSERT(!o5); // Verify assert
         // The address argument not used for single port LUTRAMs. Use ctrlset.wa instead.
         std::unique_ptr<CellInfo> dram_lut = create_cell(ctx, ctx->id("RAMS32"), ctx->id(name));
@@ -125,6 +128,7 @@ CellInfo *XilinxPacker::create_dram32_lut(const std::string &name, CellInfo *bas
         new_cells.push_back(std::move(dram_lut));
         return dl;
     }
+    log_info("Creating RAMD32 (%s)\n", name.c_str());
     std::unique_ptr<CellInfo> dram_lut = create_cell(ctx, ctx->id("RAMD32"), ctx->id(name));
     for (int i = 0; i < int(address.size()); i++)
         connect_port(ctx, address[i], dram_lut.get(), ctx->id("RADR" + std::to_string(i)));
@@ -337,6 +341,7 @@ void XilinxPacker::pack_dram()
     // Grouped DRAM
     for (auto &group : dram_groups) {
         auto &cs = group.first;
+        log_info("cs.memtype: %s\n", cs.memtype.c_str(ctx));
         if (cs.memtype == ctx->id("RAM64X1D")) {
             int z = height - 1;
             CellInfo *base = nullptr;
