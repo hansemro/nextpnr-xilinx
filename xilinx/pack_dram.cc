@@ -430,7 +430,7 @@ void XilinxPacker::pack_dram()
                     // Topmost cell is the write address input
                     std::vector<NetInfo *> address(cs.wa.begin(), cs.wa.begin() + std::min<size_t>(cs.wa.size(), 5));
                     address.push_back(ctx->nets[ctx->id("$PACKER_GND_NET")].get());
-                    base = create_dram_lut(cell->name.str(ctx) + "/ADDR", nullptr, cs, address, nullptr, nullptr, false, z);
+                    base = create_dram32_lut(cell->name.str(ctx) + "/ADDR", nullptr, cs, address, nullptr, nullptr, false, false, z);
                     z--;
                 }
 
@@ -451,7 +451,7 @@ void XilinxPacker::pack_dram()
                         std::vector<NetInfo *> address(cs.wa.begin(),
                                                        cs.wa.begin() + std::min<size_t>(cs.wa.size(), 5));
                         address.push_back(ctx->nets[ctx->id("$PACKER_GND_NET")].get());
-                        CellInfo *dpr = create_dram_lut(cell->name.str(ctx) + "/SP", base, cs, address, di, spo, false, z);
+                        CellInfo *dpr = create_dram32_lut(cell->name.str(ctx) + "/SP", base, cs, address, di, spo, false, false, z);
                         if (cell->params.count(ctx->id("INIT")))
                             dpr->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
                         z--;
@@ -463,7 +463,7 @@ void XilinxPacker::pack_dram()
                     for (int i = 0; i < 5; i++)
                         address.push_back(get_net_or_empty(cell, ctx->id("DPRA" + std::to_string(i))));
                     address.push_back(ctx->nets[ctx->id("$PACKER_GND_NET")].get());
-                    CellInfo *dpr = create_dram_lut(cell->name.str(ctx) + "/DP", base, cs, address, di, dpo, false, z);
+                    CellInfo *dpr = create_dram32_lut(cell->name.str(ctx) + "/DP", base, cs, address, di, dpo, false, false, z);
                     if (cell->params.count(ctx->id("INIT")))
                         dpr->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
                     z--;
