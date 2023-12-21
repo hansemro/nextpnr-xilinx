@@ -258,7 +258,11 @@ void XilinxPacker::pack_dram()
             continue;
         auto &dt = dt_iter->second;
         for (int i = 0; i < std::min(dt.abits, 6); i++) {
-            IdString aport = ctx->id(dt.abits <= 6 ? ("A" + std::to_string(i)) : ("A[" + std::to_string(i) + "]"));
+            IdString aport;
+            if(dt.rports > 0)
+                aport = ctx->id(dt.abits <= 6 ? ("A" + std::to_string(i)) : ("A[" + std::to_string(i) + "]"));
+            else
+                aport = ctx->id(dt.abits <= 7 ? ("A" + std::to_string(i)) : ("A[" + std::to_string(i) + "]"));
             if (!ci->ports.count(aport))
                 continue;
             NetInfo *anet = get_net_or_empty(ci, aport);
@@ -298,9 +302,14 @@ void XilinxPacker::pack_dram()
             continue;
         auto &dt = dt_iter->second;
         DRAMControlSet dcs;
-        for (int i = 0; i < dt.abits; i++)
-            dcs.wa.push_back(get_net_or_empty(
-                    ci, ctx->id(dt.abits <= 6 ? ("A" + std::to_string(i)) : ("A[" + std::to_string(i) + "]"))));
+        for (int i = 0; i < dt.abits; i++) {
+            NetInfo *wa;
+            if (dt.rports > 0)
+                wa = get_net_or_empty(ci, ctx->id(dt.abits <= 6 ? ("A" + std::to_string(i)) : ("A[" + std::to_string(i) + "]")));
+            else
+                wa = get_net_or_empty(ci, ctx->id(dt.abits <= 7 ? ("A" + std::to_string(i)) : ("A[" + std::to_string(i) + "]")));
+            dcs.wa.push_back(wa);
+        }
         dcs.wclk = get_net_or_empty(ci, ctx->id("WCLK"));
         dcs.we = get_net_or_empty(ci, ctx->id("WE"));
         dcs.wclk_inv = bool_or_default(ci->params, ctx->id("IS_WCLK_INVERTED"));
