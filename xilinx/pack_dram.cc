@@ -584,8 +584,8 @@ void XilinxPacker::pack_dram()
                     spr->params[ctx->id("INIT")] = init.extract(i * 64, 64);
                     z--;
                 }
-                // Decode mux tree using MUXF7
-                create_muxf_tree(base, "SPO", spo_pre, address_high, spo, m256 ? 4 : (ctx->xc7 ? 2 : 6));
+                // Decode mux tree using MUXF[78]
+                create_muxf_tree(base, "SPO", spo_pre, address_high, spo, m256 ? 0 : 2);
 
                 packed_cells.insert(cell->name);
             }
