@@ -214,7 +214,7 @@ void XilinxPacker::pack_dram()
     dram_rules[ctx->id("RAMS64E")].port_xform[ctx->id("I")] = id_DI1;
     dram_rules[ctx->id("RAMS64E")].port_xform[ctx->id("O")] = id_O6;
 
-    // RAMD32 to LUT_OR_MEM6
+    // RAMD32 to LUT_OR_MEM6 using DI2 and O6 ports
     dram32_6_rules[ctx->id("RAMD32")].new_type = id_SLICE_LUTX;
     dram32_6_rules[ctx->id("RAMD32")].param_xform[ctx->id("IS_CLK_INVERTED")] = ctx->id("IS_WCLK_INVERTED");
     dram32_6_rules[ctx->id("RAMD32")].set_attrs.emplace_back(ctx->id("X_LUT_AS_DRAM"), "1");
@@ -227,7 +227,7 @@ void XilinxPacker::pack_dram()
     dram32_6_rules[ctx->id("RAMD32")].port_xform[ctx->id("I")] = id_DI2;
     dram32_6_rules[ctx->id("RAMD32")].port_xform[ctx->id("O")] = id_O6;
 
-    // RAMS32 to LUT_OR_MEM6
+    // RAMS32 to LUT_OR_MEM6 using DI2 and O6 ports
     dram32_6_rules[ctx->id("RAMS32")].new_type = id_SLICE_LUTX;
     dram32_6_rules[ctx->id("RAMS32")].param_xform[ctx->id("IS_CLK_INVERTED")] = ctx->id("IS_WCLK_INVERTED");
     dram32_6_rules[ctx->id("RAMS32")].set_attrs.emplace_back(ctx->id("X_LUT_AS_DRAM"), "1");
@@ -240,14 +240,23 @@ void XilinxPacker::pack_dram()
     dram32_6_rules[ctx->id("RAMS32")].port_xform[ctx->id("I")] = id_DI2;
     dram32_6_rules[ctx->id("RAMS32")].port_xform[ctx->id("O")] = id_O6;
 
-    // RAMD32 to LUT_OR_MEM5
+    // RAMD32 to LUT_OR_MEM5 using DI1 and O5 ports
     dram32_5_rules = dram32_6_rules;
     dram32_5_rules[ctx->id("RAMD32")].port_xform[ctx->id("I")] = id_DI1;
     dram32_5_rules[ctx->id("RAMD32")].port_xform[ctx->id("O")] = id_O5;
 
-    // RAMS32 to LUT_OR_MEM5
+    // RAMS32 to LUT_OR_MEM5 using DI1 and O5 ports
     dram32_5_rules[ctx->id("RAMS32")].port_xform[ctx->id("I")] = id_DI1;
     dram32_5_rules[ctx->id("RAMS32")].port_xform[ctx->id("O")] = id_O5;
+
+    // RAMS32 to LUT_OR_MEM6 using DI1 and O6 ports
+    dram32_rules = dram32_6_rules;
+    dram32_rules[ctx->id("RAMD32")].port_xform[ctx->id("I")] = id_DI1;
+    dram32_rules[ctx->id("RAMD32")].port_xform[ctx->id("O")] = id_O6;
+
+    // RAMS32 to LUT_OR_MEM6 using DI1 and O6 ports
+    dram32_rules[ctx->id("RAMS32")].port_xform[ctx->id("I")] = id_DI1;
+    dram32_rules[ctx->id("RAMS32")].port_xform[ctx->id("O")] = id_O6;
 
     // Optimise DRAM with tied-low inputs, to more efficiently routeable tied-high inputs
     int inverted_ports = 0;
