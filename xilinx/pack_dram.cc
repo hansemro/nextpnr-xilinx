@@ -76,7 +76,7 @@ CellInfo *XilinxPacker::create_dram_lut(const std::string &name, CellInfo *base,
 }
 
 CellInfo *XilinxPacker::create_dram32_lut(const std::string &name, CellInfo *base, const DRAMControlSet &ctrlset,
-                                          std::vector<NetInfo *> address, NetInfo *di, NetInfo *dout, bool o5, int z)
+                                          std::vector<NetInfo *> address, NetInfo *di, NetInfo *dout, bool di1, bool o5, int z)
 {
     std::unique_ptr<CellInfo> dram_lut;
     if (address.size() > 0) {
@@ -97,7 +97,7 @@ CellInfo *XilinxPacker::create_dram32_lut(const std::string &name, CellInfo *bas
     connect_port(ctx, ctrlset.we, dram_lut.get(), ctx->id("WE"));
     dram_lut->params[ctx->id("IS_WCLK_INVERTED")] = ctrlset.wclk_inv ? 1 : 0;
 
-    xform_cell(o5 ? dram32_5_rules : dram32_6_rules, dram_lut.get());
+    xform_cell(di1 && !o5 ? dram32_rules : o5 ? dram32_5_rules : dram32_6_rules, dram_lut.get());
 
     dram_lut->constr_abs_z = true;
     dram_lut->constr_z = (z << 4) | (o5 ? BEL_5LUT : BEL_6LUT);
@@ -534,7 +534,7 @@ void XilinxPacker::pack_dram()
                         disconnect_port(ctx, ci, ctx->id(stringf("DI%c[%d]", 'A' + i, j)));
                         disconnect_port(ctx, ci, ctx->id(stringf("DO%c[%d]", 'A' + i, j)));
                         CellInfo *dram = create_dram32_lut(stringf("%s/DPR%d_%d", ctx->nameOf(ci), i, j), base, dcs,
-                                                           address, di, dout, (j == 0), zoffset + i);
+                                                           address, di, dout, false, (j == 0), zoffset + i);
                         if (base == nullptr)
                             base = dram;
                         if (ci->params.count(ctx->id(stringf("INIT%c", 'A' + i)))) {
