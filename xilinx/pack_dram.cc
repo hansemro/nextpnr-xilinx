@@ -330,11 +330,12 @@ void XilinxPacker::pack_dram()
     // Grouped DRAM
     for (auto &group : dram_groups) {
         auto &cs = group.first;
-        if (cs.memtype == ctx->id("RAM64X1D")) {
+        if ((cs.memtype == ctx->id("RAM32X1D")) || (cs.memtype == ctx->id("RAM64X1D"))) {
+            bool m64 = cs.memtype == ctx->id("RAM64X1D");
             int z = height - 1;
             CellInfo *base = nullptr;
             for (auto cell : group.second) {
-                NPNR_ASSERT(cell->type == ctx->id("RAM64X1D")); // FIXME
+                NPNR_ASSERT((cell->type == ctx->id("RAM32X1D")) || (cell->type == ctx->id("RAM64X1D")));
 
                 int z_size = 0;
                 if (get_net_or_empty(cell, ctx->id("SPO")) != nullptr)
@@ -345,8 +346,11 @@ void XilinxPacker::pack_dram()
                 if (z == (height - 1) || (z - z_size + 1) < 0) {
                     z = (height - 1);
                     // Topmost cell is the write address input
-                    std::vector<NetInfo *> address(cs.wa.begin(), cs.wa.begin() + std::min<size_t>(cs.wa.size(), 6));
-                    base = create_dram_lut(cell->name.str(ctx) + "/ADDR", nullptr, cs, address, nullptr, nullptr, z);
+                    std::vector<NetInfo *> address(cs.wa.begin(), cs.wa.begin() + std::min<size_t>(cs.wa.size(), m64 ? 6 : 5));
+                    if (m64)
+                        base = create_dram_lut(cell->name.str(ctx) + "/ADDR", nullptr, cs, address, nullptr, nullptr, z);
+                    else
+                        base = create_dram32_lut(cell->name.str(ctx) + "/ADDR", nullptr, cs, address, nullptr, nullptr, true, false, z);
                     z--;
                 }
 
@@ -365,8 +369,12 @@ void XilinxPacker::pack_dram()
                             base->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
                     } else {
                         std::vector<NetInfo *> address(cs.wa.begin(),
-                                                       cs.wa.begin() + std::min<size_t>(cs.wa.size(), 6));
-                        CellInfo *dpr = create_dram_lut(cell->name.str(ctx) + "/SP", base, cs, address, di, spo, z);
+                                                       cs.wa.begin() + std::min<size_t>(cs.wa.size(), m64 ? 6 : 5));
+                        CellInfo *dpr;
+                        if (m64)
+                            dpr = create_dram_lut(cell->name.str(ctx) + "/SP", base, cs, address, di, spo, z);
+                        else
+                            dpr = create_dram32_lut(cell->name.str(ctx) + "/SP", base, cs, address, di, spo, true, false, z);
                         if (cell->params.count(ctx->id("INIT")))
                             dpr->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
                         z--;
@@ -377,65 +385,11 @@ void XilinxPacker::pack_dram()
                     std::vector<NetInfo *> address;
                     for (int i = 0; i < 6; i++)
                         address.push_back(get_net_or_empty(cell, ctx->id("DPRA" + std::to_string(i))));
-                    CellInfo *dpr = create_dram_lut(cell->name.str(ctx) + "/DP", base, cs, address, di, dpo, z);
-                    if (cell->params.count(ctx->id("INIT")))
-                        dpr->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
-                    z--;
-                }
-
-                packed_cells.insert(cell->name);
-            }
-        } else if (cs.memtype == ctx->id("RAM32X1D")) {
-            int z = (height - 1);
-            CellInfo *base = nullptr;
-            for (auto cell : group.second) {
-                NPNR_ASSERT(cell->type == ctx->id("RAM32X1D"));
-
-                int z_size = 0;
-                if (get_net_or_empty(cell, ctx->id("SPO")) != nullptr)
-                    z_size++;
-                if (get_net_or_empty(cell, ctx->id("DPO")) != nullptr)
-                    z_size++;
-
-                if (z == (height - 1) || (z - z_size + 1) < 0) {
-                    z = (height - 1);
-                    // Topmost cell is the write address input
-                    std::vector<NetInfo *> address(cs.wa.begin(), cs.wa.begin() + std::min<size_t>(cs.wa.size(), 5));
-                    address.push_back(ctx->nets[ctx->id("$PACKER_GND_NET")].get());
-                    base = create_dram32_lut(cell->name.str(ctx) + "/ADDR", nullptr, cs, address, nullptr, nullptr, true, false, z);
-                    z--;
-                }
-
-                NetInfo *dpo = get_net_or_empty(cell, ctx->id("DPO"));
-                NetInfo *spo = get_net_or_empty(cell, ctx->id("SPO"));
-                disconnect_port(ctx, cell, ctx->id("DPO"));
-                disconnect_port(ctx, cell, ctx->id("SPO"));
-
-                NetInfo *di = get_net_or_empty(cell, ctx->id("D"));
-                if (spo != nullptr) {
-                    if (z == (height - 2)) {
-                        // Can fold DPO into address buffer
-                        connect_port(ctx, spo, base, ctx->id("O6"));
-                        connect_port(ctx, di, base, ctx->id("DI1"));
-                        if (cell->params.count(ctx->id("INIT")))
-                            base->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
-                    } else {
-                        std::vector<NetInfo *> address(cs.wa.begin(),
-                                                       cs.wa.begin() + std::min<size_t>(cs.wa.size(), 5));
-                        address.push_back(ctx->nets[ctx->id("$PACKER_GND_NET")].get());
-                        CellInfo *dpr = create_dram32_lut(cell->name.str(ctx) + "/SP", base, cs, address, di, spo, true, false, z);
-                        if (cell->params.count(ctx->id("INIT")))
-                            dpr->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
-                        z--;
-                    }
-                }
-
-                if (dpo != nullptr) {
-                    std::vector<NetInfo *> address;
-                    for (int i = 0; i < 5; i++)
-                        address.push_back(get_net_or_empty(cell, ctx->id("DPRA" + std::to_string(i))));
-                    address.push_back(ctx->nets[ctx->id("$PACKER_GND_NET")].get());
-                    CellInfo *dpr = create_dram32_lut(cell->name.str(ctx) + "/DP", base, cs, address, di, dpo, true, false, z);
+                    CellInfo *dpr;
+                    if (m64)
+                        dpr = create_dram_lut(cell->name.str(ctx) + "/DP", base, cs, address, di, dpo, z);
+                    else
+                        dpr = create_dram32_lut(cell->name.str(ctx) + "/DP", base, cs, address, di, dpo, true, false, z);
                     if (cell->params.count(ctx->id("INIT")))
                         dpr->params[ctx->id("INIT")] = cell->params[ctx->id("INIT")];
                     z--;
