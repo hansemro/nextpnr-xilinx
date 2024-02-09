@@ -56,7 +56,7 @@ CellInfo *XilinxPacker::create_dram_lut(const std::string &name, CellInfo *base,
     connect_port(ctx, dout, dram_lut.get(), ctx->id("O"));
     connect_port(ctx, ctrlset.wclk, dram_lut.get(), ctx->id("CLK"));
     connect_port(ctx, ctrlset.we, dram_lut.get(), ctx->id("WE"));
-    dram_lut->params[ctx->id("IS_WCLK_INVERTED")] = ctrlset.wclk_inv ? 1 : 0;
+    dram_lut->params[ctx->id("IS_CLK_INVERTED")] = ctrlset.wclk_inv ? 1 : 0;
 
     xform_cell(dram_rules, dram_lut.get());
 
@@ -95,7 +95,7 @@ CellInfo *XilinxPacker::create_dram32_lut(const std::string &name, CellInfo *bas
     connect_port(ctx, dout, dram_lut.get(), ctx->id("O"));
     connect_port(ctx, ctrlset.wclk, dram_lut.get(), ctx->id("CLK"));
     connect_port(ctx, ctrlset.we, dram_lut.get(), ctx->id("WE"));
-    dram_lut->params[ctx->id("IS_WCLK_INVERTED")] = ctrlset.wclk_inv ? 1 : 0;
+    dram_lut->params[ctx->id("IS_CLK_INVERTED")] = ctrlset.wclk_inv ? 1 : 0;
 
     xform_cell(di1 && !o5 ? dram32_rules : o5 ? dram32_5_rules : dram32_6_rules, dram_lut.get());
 
