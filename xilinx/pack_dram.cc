@@ -35,15 +35,27 @@ NEXTPNR_NAMESPACE_BEGIN
 CellInfo *XilinxPacker::create_dram_lut(const std::string &name, CellInfo *base, const DRAMControlSet &ctrlset,
                                         std::vector<NetInfo *> address, NetInfo *di, NetInfo *dout, int z)
 {
-    std::unique_ptr<CellInfo> dram_lut = create_cell(ctx, ctx->id("RAMD64E"), ctx->id(name));
-    for (int i = 0; i < int(address.size()); i++)
-        connect_port(ctx, address[i], dram_lut.get(), ctx->id("RADR" + std::to_string(i)));
+    std::unique_ptr<CellInfo> dram_lut;
+    if (address.size() > 0) {
+        dram_lut = create_cell(ctx, ctx->id("RAMD64E"), ctx->id(name));
+        for (int i = 0; i < int(address.size()); i++)
+            connect_port(ctx, address[i], dram_lut.get(), ctx->id("RADR" + std::to_string(i)));
+        for (int i = 0; i < int(ctrlset.wa.size()); i++)
+            connect_port(ctx, ctrlset.wa[i], dram_lut.get(), ctx->id("WADR" + std::to_string(i)));
+    }
+    else {
+        dram_lut = create_cell(ctx, ctx->id("RAMS64E"), ctx->id(name));
+        for (int i = 0; i < int(ctrlset.wa.size()); i++) {
+            if (i < 6)
+                connect_port(ctx, ctrlset.wa[i], dram_lut.get(), ctx->id("ADR" + std::to_string(i)));
+            else
+                connect_port(ctx, ctrlset.wa[i], dram_lut.get(), ctx->id("WADR" + std::to_string(i)));
+        }
+    }
     connect_port(ctx, di, dram_lut.get(), ctx->id("I"));
     connect_port(ctx, dout, dram_lut.get(), ctx->id("O"));
     connect_port(ctx, ctrlset.wclk, dram_lut.get(), ctx->id("CLK"));
     connect_port(ctx, ctrlset.we, dram_lut.get(), ctx->id("WE"));
-    for (int i = 0; i < int(ctrlset.wa.size()); i++)
-        connect_port(ctx, ctrlset.wa[i], dram_lut.get(), ctx->id("WADR" + std::to_string(i)));
     dram_lut->params[ctx->id("IS_WCLK_INVERTED")] = ctrlset.wclk_inv ? 1 : 0;
 
     xform_cell(dram_rules, dram_lut.get());
@@ -66,15 +78,23 @@ CellInfo *XilinxPacker::create_dram_lut(const std::string &name, CellInfo *base,
 CellInfo *XilinxPacker::create_dram32_lut(const std::string &name, CellInfo *base, const DRAMControlSet &ctrlset,
                                           std::vector<NetInfo *> address, NetInfo *di, NetInfo *dout, bool o5, int z)
 {
-    std::unique_ptr<CellInfo> dram_lut = create_cell(ctx, ctx->id("RAMD32"), ctx->id(name));
-    for (int i = 0; i < int(address.size()); i++)
-        connect_port(ctx, address[i], dram_lut.get(), ctx->id("RADR" + std::to_string(i)));
+    std::unique_ptr<CellInfo> dram_lut;
+    if (address.size() > 0) {
+        dram_lut = create_cell(ctx, ctx->id("RAMD32"), ctx->id(name));
+        for (int i = 0; i < int(address.size()); i++)
+            connect_port(ctx, address[i], dram_lut.get(), ctx->id("RADR" + std::to_string(i)));
+        for (int i = 0; i < int(ctrlset.wa.size()); i++)
+            connect_port(ctx, ctrlset.wa[i], dram_lut.get(), ctx->id("WADR" + std::to_string(i)));
+    } else {
+        dram_lut = create_cell(ctx, ctx->id("RAMS32"), ctx->id(name));
+        for (int i = 0; i < int(ctrlset.wa.size()); i++) {
+            connect_port(ctx, ctrlset.wa[i], dram_lut.get(), ctx->id("ADR" + std::to_string(i)));
+        }
+    }
     connect_port(ctx, di, dram_lut.get(), ctx->id("I"));
     connect_port(ctx, dout, dram_lut.get(), ctx->id("O"));
     connect_port(ctx, ctrlset.wclk, dram_lut.get(), ctx->id("CLK"));
     connect_port(ctx, ctrlset.we, dram_lut.get(), ctx->id("WE"));
-    for (int i = 0; i < int(ctrlset.wa.size()); i++)
-        connect_port(ctx, ctrlset.wa[i], dram_lut.get(), ctx->id("WADR" + std::to_string(i)));
     dram_lut->params[ctx->id("IS_WCLK_INVERTED")] = ctrlset.wclk_inv ? 1 : 0;
 
     xform_cell(o5 ? dram32_5_rules : dram32_6_rules, dram_lut.get());
