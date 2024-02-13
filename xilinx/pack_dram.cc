@@ -466,7 +466,7 @@ void XilinxPacker::pack_dram()
                             base = dram;
                         if (ci->params.count(ctx->id(stringf("INIT_%c", 'A' + i)))) {
                             auto orig_init =
-                                    ci->params.at(ctx->id(stringf("INIT_%c", 'A' + i))).extract(0, 64).as_bits();
+                                    ci->params.at(ctx->id(stringf("INIT_%c", 'A' + i))).extract(0, 64).to_string();
                             std::string init;
                             for (int k = 0; k < 32; k++) {
                                 init.push_back(orig_init.at(k * 2 + j));
