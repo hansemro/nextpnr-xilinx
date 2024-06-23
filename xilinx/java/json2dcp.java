@@ -6,7 +6,6 @@ import com.xilinx.rapidwright.device.PartNameTools;
 import com.xilinx.rapidwright.device.*;
 import com.google.gson.*;
 import com.xilinx.rapidwright.edif.*;
-import com.xilinx.rapidwright.util.RapidWright;
 import org.python.antlr.ast.Str;
 
 import java.io.FileNotFoundException;
@@ -389,24 +388,26 @@ public class json2dcp {
 
         }
 
-        EDIFCell top = des.getNetlist().getTopCell();
-        EDIFNet edif_gnd = EDIFTools.getStaticNet(NetType.GND, top, des.getNetlist());
-        EDIFNet edif_vcc = EDIFTools.getStaticNet(NetType.VCC, top, des.getNetlist());
+        EDIFHierCellInst top = des.getNetlist().getTopHierCellInst();
+        EDIFHierNet edif_gnd = EDIFTools.getStaticNet(NetType.GND, top, des.getNetlist());
+        EDIFHierNet edif_vcc = EDIFTools.getStaticNet(NetType.VCC, top, des.getNetlist());
 
         for (NextpnrNet nn : ndes.nets.values()) {
             //System.out.println("create net " + nn.name);
             Net n;
             if (nn.name.equals("$PACKER_VCC_NET")) {
-                n = new Net("GLOBAL_LOGIC1", edif_vcc);
+                //n = des.createNet("GLOBAL_LOGIC1", edif_vcc);
+                n = des.createNet(edif_vcc);
                 des.addNet(n);
             } else if (nn.name.equals("$PACKER_GND_NET")) {
-                n = new Net("GLOBAL_LOGIC0", edif_gnd);
+                //n = des.createNet("GLOBAL_LOGIC0", edif_gnd);
+                n = des.createNet(edif_gnd);
                 des.addNet(n);
             } else if (nn.name.contains("$subnet$")) {
-                n = new Net(escape_name(nn.name), (EDIFNet)null);
+                n = des.createNet(escape_name(nn.name));
                 des.addNet(n);
             } else {
-                n = new Net(escape_name(nn.name), new EDIFNet(escape_name(nn.name), des.getTopEDIFCell()));
+                n = des.createNet(new EDIFHierNet(top, new EDIFNet(escape_name(nn.name), des.getTopEDIFCell())));
                 des.addNet(n);
             }
             nn.rwNet = n;
@@ -428,7 +429,7 @@ public class json2dcp {
                         // Special case where no logical pin exists, mostly where we tie A6 high for a fractured LUT
                         BELPin belPin = usr.cell.rwCell.getBEL().getPin(usr.name);
                         if (belPin != null && belPin.getConnectedSitePinName() != null) {
-                            n.createPin(false, belPin.getConnectedSitePinName(), usr.cell.rwCell.getSiteInst());
+                            n.createPin(belPin.getConnectedSitePinName(), usr.cell.rwCell.getSiteInst());
                         }
                     }
 
