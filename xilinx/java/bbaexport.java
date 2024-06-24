@@ -7,7 +7,6 @@ import com.xilinx.rapidwright.device.PartNameTools;
 import com.xilinx.rapidwright.device.*;
 import com.xilinx.rapidwright.edif.*;
 import com.xilinx.rapidwright.util.Utils;
-import com.xilinx.rapidwright.util.RapidWright;
 import com.xilinx.rapidwright.timing.*;
 
 import java.io.File;
@@ -405,7 +404,7 @@ public class bbaexport {
             tg.add(p.getStartNode(), p.getStartWire().getIntentCode());
             tg.add(p);
             tg.add(p.getEndNode(), p.getEndWire().getIntentCode());
-            var delay = m.calcDelay(tg);
+            float delay = m.calcDelay(tg);
             int tmg_cls = get_pip_timing_class((int)(delay));
 
             NextpnrPip np = new NextpnrPip(pips.size(), reverse ?  p.getEndWireIndex() : p.getStartWireIndex(), reverse ?  p.getStartWireIndex() : p.getEndWireIndex(), tmg_cls, NextpnrPipType.TILE_ROUTING);
@@ -799,7 +798,7 @@ public class bbaexport {
             ++known_id_count;
         }
 
-        TimingModel tmg = new TimingModel(des);
+        TimingModel tmg = new TimingModel(d);
         tmg.build();
 
         // Unique tiletypes
@@ -993,7 +992,7 @@ public class bbaexport {
         }
 
         // Nodes
-        HashSet<TileTypeEnum> intTileTypes = Utils.getIntTileTypes();
+        Set<TileTypeEnum> intTileTypes = Utils.getIntTileTypes();
         HashSet<Long> seenNodes = new HashSet<>();
         int curr = 0, total = d.getAllTiles().size();
         ArrayList<Integer> nodeWireCount = new ArrayList<>(), nodeIntent = new ArrayList<>();
@@ -1153,7 +1152,7 @@ public class bbaexport {
         bba.printf("ref pip_timing_classes\n");
         // Chip info
         bba.println("label chip_info");
-        bba.printf("str |%s|\n", d.getDeviceName()); //device name
+        bba.printf("str |%s|\n", d.getName()); //device name
         bba.printf("str |RapidWright|\n"); //generator
         bba.printf("u32 %d\n", 1); //version
         bba.printf("u32 %d\n", d.getColumns()); //width
