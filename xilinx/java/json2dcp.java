@@ -443,6 +443,7 @@ public class json2dcp {
         for (NextpnrNet nn : ndes.nets.values()) {
             Net n = nn.rwNet;
 
+            /*
             HashSet<String> inverted_wires = new HashSet<>();
             for (NextpnrCellPort sink : nn.users) {
                 if (sink.cell.attrs.containsKey("X_ORIG_PORT_" + sink.name)) {
@@ -561,6 +562,7 @@ public class json2dcp {
                     }
                 }
             }
+            */
         }
 
 
