@@ -296,6 +296,7 @@ public class json2dcp {
             } else {
                 String origType = nc.attrs.get("X_ORIG_TYPE");
                 Unisim unitype = Unisim.valueOf(origType);
+                String belLoc = nc.attrs.get("NEXTPNR_BEL");
 
                 if (unitype == Unisim.FDRE_1)
                     unitype= Unisim.FDRE;
@@ -308,8 +309,10 @@ public class json2dcp {
 
                 if (nc.name.contains("$subcell$")) {
                     nc.rwCell = create_cell_custom(des, nc);
+                } else if (belLoc != null) {
+                    nc.rwCell = des.createAndPlaceCell(nc.name.replace("/", "__"), unitype, belLoc);
                 } else {
-                    nc.rwCell = des.createAndPlaceCell(nc.name.replace("/", "__"), unitype, nc.attrs.get("NEXTPNR_BEL"));
+                    System.err.println("NEXTPNR_BEL attribute missing for cell " + nc.name);
                 }
 
 
