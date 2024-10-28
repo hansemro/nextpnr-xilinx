@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import java.util.Arrays;
+
 public class json2dcp {
 
     static class NextpnrNet {
@@ -442,6 +444,86 @@ public class json2dcp {
 
         for (NextpnrNet nn : ndes.nets.values()) {
             Net n = nn.rwNet;
+            System.out.println("Nextpnr net: " + nn.name);
+
+            if (nn.attrs.containsKey("ROUTING")) {
+                String[] routing = nn.attrs.get("ROUTING").split(";");
+                //System.out.println("ROUTING: " + Arrays.toString(routing));
+                //System.out.println("routing.length: " + routing.length / 3);
+
+                for (int i = 0; i < (routing.length-2); i+=3) {
+                    String dst_wire = routing[i]; // dst
+                    String pip_route = routing[i+1]; // src->dst
+
+                    if (pip_route.isEmpty())
+                        continue;
+
+                    String[] wires = pip_route.split("->");
+
+                    if (wires[0].startsWith("SITEWIRE") && dst_wire.startsWith("SITEWIRE")) {
+                        //System.out.println("SRC: " + wires[0] + ", DST: " + dst_wire);
+                        String[] src_sp = wires[0].split("/");
+                        String[] dst_sp = dst_wire.split("/");
+                        System.out.println("SRC: " + Arrays.toString(src_sp) + ", DST: " + Arrays.toString(dst_sp));
+
+                        // check if site matches
+                        if (!src_sp[1].equals(dst_sp[1]))
+                            System.err.println(Arrays.toString(src_sp) + " != " + Arrays.toString(dst_sp));
+
+                        SiteInst si = des.getSiteInstFromSiteName(src_sp[1]);
+
+                        //for (SitePIP si_pip : si.getSitePIPs()) {
+                        //    System.out.println("\t" + si_pip.getName(si.getSite()));
+                        //}
+
+                        System.out.println("all site pins: " + Arrays.toString(si.getSitePinNames()));
+                        System.out.println("src site wire pins: " + Arrays.toString(si.getSiteWirePins(src_sp[2])));
+                        System.out.println(Arrays.stream(si.getSitePinNames()).anyMatch(src_sp[2]::contains));
+
+                        System.out.println("dst site wire pins: " + Arrays.toString(si.getSiteWirePins(dst_sp[2])));
+                        System.out.println(Arrays.stream(si.getSitePinNames()).anyMatch(dst_sp[2]::contains));
+
+                        BELPin startPin = null;
+                        BELPin endPin = null;
+
+                        for (BELPin bp : si.getSiteWirePins(src_sp[2])) {
+                            if (bp.isOutput() && bp.getSiteWireName().equals(src_sp[2])) {
+                                startPin = bp;
+                                System.out.println("Found src pin: " + startPin);
+                                break;
+                            }
+                        }
+
+                        for (BELPin bp : si.getSiteWirePins(dst_sp[2])) {
+                            System.out.println("dst bp candidate: " + bp);
+                            if (bp.isOutput() && bp.getSiteWireName().equals(dst_sp[2])) {
+                                endPin = bp;
+                                System.out.println("Found SITE dst pin: " + endPin);
+                                break;
+                            }
+                        }
+
+                        if (startPin != null && endPin == null) {
+                            endPin = startPin.getConnectedInputPinOnBEL(si.getBEL(dst_sp[2].split("_")[0]));
+                            if (endPin != null)
+                                System.out.println("Found BEL dst pin: " + endPin);
+                        }
+
+                        if (startPin != null && endPin != null) {
+                            si.routeIntraSiteNet(n, startPin, endPin);
+                        } else {
+                            System.err.println("Unhandled case");
+                        }
+
+                    } else if (wires[0].startsWith("SITEWIRE")) {
+                        // TODO: Site Output to Interconnect
+                    } else if (dst_wire.startsWith("SITEWIRE")) {
+                        // TODO: Interconnect to Site Input
+                    }
+                }
+            } else {
+                System.err.println("ROUTING attribute missing for net " + nn.name);
+            }
 
             /*
             HashSet<String> inverted_wires = new HashSet<>();
